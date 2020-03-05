@@ -1,6 +1,6 @@
 ---
 title: "Datamining - Regression Logistique"
-author: "Clara"
+author: "Team LLED"
 date: "3/5/2020"
 output: html_document
 ---
@@ -9,25 +9,20 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+## Phase 1 : Le projet
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+Le but de notre étude est de prédire si le client est en statut mauvais ou bon.
+D’analyser les « comportements » des clients selon deux axes : une partie statistique et une partie d’interprétation métier et de recommandation
+Ainsi cette analyse permettra de mesurer le potentiel des clients et de diminuer le risque à l’octroi de crédit.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+Base de travail = doc xls « fichier de données crédits »
+Tâche principale = extraire l’information utile des données et la mettre à disposition des décideurs.
+Méthode utilisée = regression logistique, réseau de neurones, arbre de décision (ou autre)
+ð  	Basé sur l’analyse et la classification des données dans la perspective d’aider à prendre des décisions.
+Outils utilisés = SPAD | RStudio | RMarkdown
 
-```{r cars}
-summary(cars)
-```
 
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+## Phase 2 : Les données
 
 ## Gestion des données 
 
@@ -63,7 +58,7 @@ boxplot(my_data$Score_2, main = "Score 2")
 ```
 
 
-## Modélisation & Interprétation
+## Préparation
 
 
 ```
@@ -82,6 +77,9 @@ pie(typeclient[,2], typeclient[,1], main = "Type de client")
 
 ```
 
+## Présentation des indicateurs 
+
+```
 # Statistiques descriptives pour les variables nominales
 # Age du client
 CrossTable(my_data$Age_du_client, my_data$Type_de_client, expected = FALSE, prop.r=TRUE, prop.c = FALSE,
@@ -157,7 +155,11 @@ colnames(my_data_main) <- as.vector(gsub("'", "_", colnames(my_data_main)))
 # # Convertir les données de type numérique en données de type facteur
 my_data_main <- as.data.frame(my_data_main)
 my_data_main[,16] <- as.factor(my_data_main[,17])
+```
 
+
+## Echantillonage 
+```
 # Echantillonage
 # Tirage aléaoire et sans remise des 70% des individus de l'échantillon
 # On initialise le tirage aléatoire afin de retomber sur nos pieds à chaque fois
@@ -182,9 +184,12 @@ my_model <- glm(Type_de_client_Bon_client
                 + Domiciliation_de_l_épargne_moins_de_10K_épargne + Domiciliation_de_l_épargne_pas_d_épargne
                 , data = train_set, family = binomial(link = 'logit'))
 summary(my_model)
-
+```
 
 ## Modélisation & Interprétation
+
+## Modélisation 
+
 ```
 # Choisir le meilleur modèle en utilisant la fonction stepAIC
 # qui nous permet de sélectionner automatiquement un modèle plus généralisable en terme de robustesse
@@ -289,3 +294,10 @@ CrossTable(my_data_main$rule_Score1, my_data_main$Type_de_client, expected = FAL
            prop.t = FALSE, prop.chisq = FALSE, format = c("SPSS"))
 
 ```
+
+
+
+## Manque toute la fin dans le script de Mai je pense - avec code pour créer la courbe de ROC 
+
+
+
