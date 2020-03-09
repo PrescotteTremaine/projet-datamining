@@ -302,6 +302,11 @@ my_model <- glm(Type_de_client_Bon_client
 summary(my_model)
 ```
 
+#### explication
+##Neque porro quisquam est qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit..."
+
+
+
 ## Modélisation & Interprétation
 
 ```{r}
@@ -455,6 +460,4 @@ par(mfrow = c(1, 2))
 plot(Perf, colorize = TRUE, main = "ROC apprentissage - AUC = 0.89")
 plot(Perftest, colorize = TRUE, main = "ROC Test - AUC = 0.82")
 ```
-
-
 
