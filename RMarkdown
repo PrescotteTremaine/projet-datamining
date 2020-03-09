@@ -67,13 +67,7 @@ La base regroupe deux grandes typologies de clients.                  1er profil
 ### Sélection du mode de classification et de la variable y 
 
 Classification supervisée
-On supposera que la variable Y à laquelle on s'intéresse est la disposition ou non d’un client à rembourser un prêt
-Sur la base de cette valeur, il est ensuite possible de calculer la variable à expliquer, notée 
-Y = 1 = Mauvais client 
-Y = 0 = Bon client
-C’est cette variable Y que nous avons utilisé pour identifier le client sur lequel il est nécessaire de concentrer vos efforts :
-Une variable Y égale à 1 : signifie que le client n’est pas en mesure d’assumer correctement un prêt et comporte de fort risque.
-Une variable Y égale à 0 : signifie que les client est en mesure d’assumer un prêt 
+On supposera que la variable Y à laquelle on s'intéresse est la disposition ou non d’un client à rembourser un prêt soit différencier les "bon" dès "mauvais" client.
 
 
 # Phase 2: Les données
@@ -131,6 +125,14 @@ Nous avons remplacé les espaces et les ‘ par "_" afin de respecter la nomencl
 
 ### Valeurs manquantes
 
+Gestion des valeurs manquante, extrême et aberrante..
+Dans le cas où les données seraient inexploitables, nous nous sommes demandé si nous devions 
+les consolider 
+Les modifier 
+Retirer les inputs non exploitables 
+De plus il faut traquer les faibles effectifs (en fonction de l’effectif global) qui ne permettent pas de généraliser le modèle.
+
+Nous parlons des valeurs manquantes, extrêmes et aberrantes
 
 ```{r}
 # On fait en sorte qu'il n'y ait pas de valeur manquante dans l'ensemble des données
@@ -148,6 +150,8 @@ Ce qui confirme qu’il n’y a aucune valeur manquante, extrêmes et aberrantes
 R nous retourne également 2 Scores (Score 1 et Score 2)
 Ce sont des scores qui ont été établis par nos concurrents.
 Et notre client fait appel à nous afin d’améliorer ces scores.
+
+
 
 
 ```{r}
@@ -168,6 +172,17 @@ On prend la variable "Type de client" comme variable exploratoire
 Ce script va nous permettre de sortir un graph montrant la répartition des bons et mauvais clients
 
 Nous avons un taux de 51% de bons clients vs un taux de 49% de mauvais clients.
+
+Sur la base de cette valeur, il est ensuite possible de calculer la variable à expliquer, notée 
+Y = 1 = Mauvais client 
+Y = 0 = Bon client
+C’est cette variable Y que nous avons utilisé pour identifier le client sur lequel il est nécessaire de concentrer vos efforts :
+Une variable Y égale à 1 : signifie que le client n’est pas en mesure d’assumer correctement un prêt et comporte de fort risque.
+Une variable Y égale à 0 : signifie que les client est en mesure d’assumer un prêt 
+
+Sur la base de cette valeur, il est ensuite possible de calculer la variable à expliquer, notée - 
+Y = 1 = Mauvais client 
+Y = 0 = Bon client
 
 ## Présentation des indicateurs 
 
@@ -232,6 +247,16 @@ kable(CrossTable(my_data$Interdiction_de_chéquier, my_data$Type_de_client, expe
            prop.t = FALSE, prop.chisq = FALSE, format = c("SPSS")))
 ```
 
+                  13 variables qualitatives
+                  Score 1 et Score 2                                                                     
+                  2 variables quantitatives
+                
+b. Nettoyer les données 
+Durant la phase de “data quality” nous avons “nettoyé” les données pour les rendre exploitable :           
+Contrôle de la cohérence/Dédoublonnage
+Normalisation des variables
+Suppression/correction des valeurs erronées ou aberrantes
+
 
 ## Regroupement de variables
 ```{r}
@@ -242,6 +267,7 @@ A la suite de cette première analyse, nous pouvons identifier deux variables po
 
 on regroupe dans situation familiale : veuf et divorcé
 on regroupe dans domiciliation de l’épargne : plus de 100K épargne et de 10 à 100K épargne
+
 
 ```{r}
 # Restructurer les données pour la régression logit
@@ -272,8 +298,16 @@ my_data_main <- as.data.frame(my_data_main)
 my_data_main[,16] <- as.factor(my_data_main[,17])
 ```
 
+Sous R les noms de variables doivent être à la fois courts et explicites.
+Nous avons remplacé les espaces et les ‘ par _ afin de respecter la nomenclature
+
+exemple 1 : identifiant client devient identifiant_client 
+exemple 2 : domiciliation de l’épargne devient domiciliation_de_l_épargne
+
 
 ## Echantillonage 
+
+Nous séparons notre base cible en un échantillon d'apprentissage, de validation et de test.
 
 ```{r}
 # Echantillonage
@@ -302,7 +336,31 @@ my_model <- glm(Type_de_client_Bon_client
 summary(my_model)
 ```
 
+Par exemple nous avons segmenter respectivement 70% pour l’échantillon d’apprentissage  et 30% pour la population de test de façon aléatoire.
+"
+
+>Si le modèle retrouve la variable Y dans l’échantillon d’apprentissage, cela veut dire que le modèle est performant (donc explicatif). 
+
+>Si le modèle fonctionne sur la population de test 30% notre modèle sera robuste (donc prédictif et peut s’appliquer sur d’autre modèle de donnée.)
+
+
 ## Modélisation & Interprétation
+
+	Choix de la variable à expliquer : type de client (y)  
+- Choix des variables explicatives et de leurs modalités de référence (càd leurs éléments de comparaison) :
+		- Age du client : moins de 23 ans
+		- Situation familiale : célibataire
+		- Ancienneté : <= 1 ans
+- Ancienneté : de 4 à 6 ans
+		- Domiciliation du salaire : non domicilié
+		- Domiciliation de l’épargne : pas d’épargne
+		- Profession : cadre vs autre
+		- Moyenne des encours : de 2 à 5 K encours 
+		- Moyenne des mouvements : <10k
+		- Cumul des débits  de 40 à 100 débits 
+		- Autorisation de découvert : non significative (donc supprimée)
+		- Interdiction de chéquier : autorisé
+
 
 ```{r}
 ## Modélisation 
@@ -455,6 +513,4 @@ par(mfrow = c(1, 2))
 plot(Perf, colorize = TRUE, main = "ROC apprentissage - AUC = 0.89")
 plot(Perftest, colorize = TRUE, main = "ROC Test - AUC = 0.82")
 ```
-
-
 
