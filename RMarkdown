@@ -1,0 +1,460 @@
+---
+title: "Datamining - Regression Logistique"
+author: "Team LLED"
+date: "3/5/2020"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: united
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Phase 1 : Le client 
+
+## Etape 1 : Découverte du besoin client et validation de sa problématique
+
+### Découverte client 
+
+Le client que nous étudions est un acteur majeur du secteur banque (de crédit) / finance qui nous a missionnés pour répondre à la problématique décrite ci-après.
+
+### Comprendre la problématique
+
+Challenges : 
+Le challenge à court et moyen-terme des commanditaires est d’optimiser l’acceptation d’un crédit en réduisant le risque de non remboursement.
+
+Problématiques :
+- Une faible capacité à traiter la masse de données importantes provenant de la base de données “Crédit”
+- Un manque de maîtrise et d’expertise de la technologie big data permettant de traiter les données dans leur ensemble et de voir les vérités qui se cachent derrière les données non structurées
+
+### Valider le besoin et la problématique
+
+Le but de notre étude est de prédire si le client est en statut mauvais ou bon.
+D’analyser les “ comportements “ ou les “caractéristiques” des clients selon deux axes : une partie statistique et une partie d’interprétation métier et de recommandation
+Ainsi cette analyse permettra de mesurer le potentiel des clients et de diminuer le risque à l’octroi de crédit.
+Puis de définir une règle d’acceptation de crédit pour les clients à venir.
+
+## Etape 2 : Définition des enjeux et objectifs
+
+### Comprendre les enjeux
+
+Besoins/Attentes/Objectifs des commanditaires
+- mieux exploiter les volumes de données récoltées et en croissance exponentielles
+- transformer la data en valeur ajoutée
+Enjeux des commanditaires  
+- mieux connaître les clients, réduire le risque, augmenter la marge commerciale 
+- cibler de manière plus efficace, améliorer la rétention des meilleurs clients
+
+Définir les objectifs métiers
+Prédire si le client est en statut mauvais, afin de définir les grands choix stratégiques de fidélisation des clients à potentiel.
+Avoir les moyens de tout mettre en oeuvre pour que l’entreprise atteigne ses objectifs.
+
+## Etape 3 : Définition du champ d’investigation
+
+### Le périmètre : profondeur de l’historique
+
+	Le document “Crédit” rendu intelligible, centralise et regroupe sous une forme homogène, l’ensemble des données disponibles sur les clients sur une longue période (de plus de 12 ans), offrant des perspectives nouvelles notamment en termes d'extraction de connaissances grâce aux outils de Data Mining.
+	
+### La typologie des clients
+ 
+La base regroupe deux grandes typologies de clients.                  1er profil : les bons clients 
+2e profil : les mauvais clients. 
+
+### Sélection du mode de classification et de la variable y 
+
+Classification supervisée
+On supposera que la variable Y à laquelle on s'intéresse est la disposition ou non d’un client à rembourser un prêt
+Sur la base de cette valeur, il est ensuite possible de calculer la variable à expliquer, notée 
+Y = 1 = Mauvais client 
+Y = 0 = Bon client
+C’est cette variable Y que nous avons utilisé pour identifier le client sur lequel il est nécessaire de concentrer vos efforts :
+Une variable Y égale à 1 : signifie que le client n’est pas en mesure d’assumer correctement un prêt et comporte de fort risque.
+Une variable Y égale à 0 : signifie que les client est en mesure d’assumer un prêt 
+
+
+# Phase 2: Les données
+
+## Étude rapide du fichier
+
+### La base de données
+
+La base de données de notre projet comporte des données sur (env.) 2000 clients.
+Base de travail = doc xls « fichier de données crédits »
+Tâche principale = extraire l’information utile des données et la mettre à disposition des décideurs.
+Méthode utilisée = régression logistique
+Basée sur l’analyse et la classification des données dans la perspective d’aider à prendre des décisions.
+Outils utilisés = SPAD | RStudio | RMarkdown
+
+```{r,results="hide"}
+# library:
+library(gmodels)
+library(dplyr)
+library(MASS)
+library(knitr)
+library(ROCR)
+library(gplots)
+library(gtools)
+library(gdata)
+rm(list=ls())
+# Importer des données
+my_data <- readxl::read_excel("/Users/Clara/Documents/1_ESG_MBA/Cours /Datamining/Fichier de donnees - Credit.xls")
+# Présentation générale de l'ensemble de données
+summary(my_data)
+```
+Pour mener à bien notre étude, nous commençons par importer le jeu de données xls dans R
+Nous assignons le jeu de données importé à une variable appelé “my_data”
+Puis nous utilisons la fonction summary() pour retourner un résumé détaillé de l’analyse
+Le data frame retourne 468 observations (lignes) et 15 variables (colonnes)
+
+## Préparation des données
+
+### Renommer des variables
+
+```{r}
+colnames(my_data) <- as.vector(gsub(" ", "_", as.vector(colnames(my_data))))
+colnames(my_data) <- as.vector(gsub("'", "_", colnames(my_data)))
+my_data
+```
+
+Durant la phase de “data quality” nous avons “nettoyé” les données pour les rendre exploitable :           
+Contrôle de la cohérence/Dédoublonnage
+Normalisation des variables
+Suppression/correction des valeurs erronées ou aberrantes
+
+Sous R les noms de variables doivent être à la fois courts et explicites.
+Nous avons remplacé les espaces et les ‘ par "_" afin de respecter la nomenclature
+
+
+### Valeurs manquantes
+
+
+```{r}
+# On fait en sorte qu'il n'y ait pas de valeur manquante dans l'ensemble des données
+ifelse(sapply(my_data, FUN = 
+                function(x) {sum(is.na(x))}) == 0, "NO MISSING VALUE", 
+       sapply(my_data, FUN = function(x) {sum(is.na(x))}))
+
+par(mfrow = c(1,2))
+boxplot(my_data$Score_1, main = "Score 1")
+boxplot(my_data$Score_2, main = "Score 2")
+```
+On vérifie/fait en sorte qu'il n'y ait pas de valeur manquante dans l'ensemble de données.
+R indique “"NO MISSING VALUE" pour chacune des 15 variables
+Ce qui confirme qu’il n’y a aucune valeur manquante, extrêmes et aberrantes.
+R nous retourne également 2 Scores (Score 1 et Score 2)
+Ce sont des scores qui ont été établis par nos concurrents.
+Et notre client fait appel à nous afin d’améliorer ces scores.
+
+
+```{r}
+# Objectif: 
+# Construire un modèle de classification pour prédire si le client est ou non "bon" en se basant sur ses antécédents de crédit
+# À partir de là, la banque peut décider si elle doit prêter de l'argent au client.
+# Pour cette raison, on prend la variable "Type de client" comme variable exploratoire
+# On examine la variable exploratoire à travers le graphique à secteurs montrant la répartition des bons et mauvais clients
+typeclient <- as.data.frame(
+  prop.table(table(my_data$Type_de_client)) * 100
+)
+pct <- round(typeclient[,2]/sum(typeclient[,2])*100)
+typeclient[,1] <- paste(typeclient[,1], pct)
+typeclient[,1] <- paste(typeclient[,1], "%", sep = "")
+pie(typeclient[,2], typeclient[,1], main = "Type de client")
+```
+On prend la variable "Type de client" comme variable exploratoire
+Ce script va nous permettre de sortir un graph montrant la répartition des bons et mauvais clients
+
+Nous avons un taux de 51% de bons clients vs un taux de 49% de mauvais clients.
+
+## Présentation des indicateurs 
+
+### Statistiques descriptives pour les variables nominales
+- Age du client
+
+```{r}
+kable(CrossTable(my_data$Age_du_client, my_data$Type_de_client, expected = FALSE, prop.r=TRUE, prop.c = FALSE,
+           prop.t = FALSE, prop.chisq = FALSE, format=c("SPSS")))
+
+```
+
+
+- Ancienneté
+```{r}
+kable(CrossTable(my_data$Ancienneté, my_data$Type_de_client, expected = FALSE, prop.r=TRUE, prop.c = FALSE,
+           prop.t = FALSE, prop.chisq = FALSE, format=c("SPSS")))
+```
+- Domiciliation du salaire
+```{r}
+kable(CrossTable(my_data$Domiciliation_du_salaire, my_data$Type_de_client, expected = FALSE, prop.r=TRUE, prop.c = FALSE,
+           prop.t = FALSE, prop.chisq = FALSE, format=c("SPSS")))
+```
+- Situation familiale
+```{r}
+kable(CrossTable(my_data$Situation_familiale, my_data$Type_de_client, expected = FALSE, prop.r=TRUE, prop.c = FALSE,
+           prop.t = FALSE, prop.chisq = FALSE, format=c("SPSS")))
+```
+- Domiciliation de l'épargne
+```{r}
+kable(CrossTable(my_data$Domiciliation_de_l_épargne, my_data$Type_de_client, expected = FALSE, prop.r=TRUE, prop.c = FALSE,
+           prop.t = FALSE, prop.chisq = FALSE, format=c("SPSS")))
+```
+- Profession
+```{r}
+kable(CrossTable(my_data$Profession, my_data$Type_de_client, expected = FALSE, prop.r=TRUE, prop.c = FALSE,
+           prop.t = FALSE, prop.chisq = FALSE, format = c("SPSS")))
+```
+- Moyenne encours
+```{r}
+kable(CrossTable(my_data$Moyenne_encours, my_data$Type_de_client, expected = FALSE, prop.r=TRUE, prop.c = FALSE,
+           prop.t = FALSE, prop.chisq = FALSE, format = c("SPSS")))
+```
+- Moyenne des mouvements
+```{r}
+kable(CrossTable(my_data$Moyenne_des_mouvements, my_data$Type_de_client, expected = FALSE, prop.r=TRUE, prop.c = FALSE,
+           prop.t = FALSE, prop.chisq = FALSE, format = c("SPSS")))
+```
+- Cumul des débits
+```{r}
+kable(CrossTable(my_data$Cumul_des_débits, my_data$Type_de_client, expected = FALSE, prop.r=TRUE, prop.c = FALSE,
+           prop.t = FALSE, prop.chisq = FALSE, format = c("SPSS")))
+```
+- Autorisation de découvert
+```{r}
+kable(CrossTable(my_data$Autorisation_de_découvert, my_data$Type_de_client, expected = FALSE, prop.r=TRUE, prop.c = FALSE,
+           prop.t = FALSE, prop.chisq = FALSE, format = c("SPSS")))
+```
+- Interdiction de chéquier
+```{r}
+kable(CrossTable(my_data$Interdiction_de_chéquier, my_data$Type_de_client, expected = FALSE, prop.r=TRUE, prop.c = FALSE,
+           prop.t = FALSE, prop.chisq = FALSE, format = c("SPSS")))
+```
+
+
+## Regroupement de variables
+```{r}
+my_data$Situation_familiale[my_data$Situation_familiale == "veuf" | my_data$Situation_familiale == "divorcé"] <- "divorcé/veuf"
+my_data$Domiciliation_de_l_épargne[my_data$Domiciliation_de_l_épargne == "plus de 100K épargne" | my_data$Domiciliation_de_l_épargne == "de 10 à 100K épargne"] <- "plus de 10K épargne"
+```
+A la suite de cette première analyse, nous pouvons identifier deux variables pour lesquelles nous devrons effectuer des regroupements d’éléments afin d’éviter de travailler sur des groupes "faibles"
+
+on regroupe dans situation familiale : veuf et divorcé
+on regroupe dans domiciliation de l’épargne : plus de 100K épargne et de 10 à 100K épargne
+
+```{r}
+# Restructurer les données pour la régression logit
+# Package requis: install.packages("fastDummies")
+# On fait en sorte que le Idenfiant_Client est dans son type correct
+# sinon les dummy_cols le prendront en compte dans le processus de binarisation
+my_data$Identifiant_Client <- as.numeric(my_data$Identifiant_Client)
+
+# Ici, on fait juste un petit truc pour se préparer à la fonction dummy_cols
+# Comme il supprimera le premier mannequin pour éviter la multicolinéarité,
+# il ne créera pas automatiquement la variable fictive pour "Bon client"
+# Cependant, il est plus intéressant de voir la probabilité d'être un bon client
+# C'est pourquoi on réordonne l'ensemble de données pour que le premier élément de la variable soit "Mauvais_client"
+my_data <- my_data[order(my_data$Type_de_client, decreasing = TRUE),] 
+```
+
+```{r}
+# Créer le jeu de données principal contenant toutes les bonnes variables
+my_data_main <- fastDummies::dummy_cols(my_data, remove_first_dummy = FALSE ) # Pour éviter la problème de multicollinéaire
+
+# Renommer les variables dans le nouvel ensemble de données
+colnames(my_data_main) <- as.vector(gsub(" ", "_", as.vector(colnames(my_data_main))))
+colnames(my_data_main) <- as.vector(gsub("__", "_", colnames(my_data_main)))
+colnames(my_data_main) <- as.vector(gsub("'", "_", colnames(my_data_main)))
+
+# # Convertir les données de type numérique en données de type facteur
+my_data_main <- as.data.frame(my_data_main)
+my_data_main[,16] <- as.factor(my_data_main[,17])
+```
+
+
+## Echantillonage 
+
+```{r}
+# Echantillonage
+# Tirage aléatoire et sans remise des 70% des individus de l'échantillon
+# On initialise le tirage aléatoire afin de retomber sur nos pieds à chaque fois
+set.seed(1000000000)
+cut_level <- sort(sample(nrow(my_data_main), nrow(my_data_main) * 0.7))
+# Echantillon d'apprentissage
+train_set <- my_data_main[cut_level,]
+# Echantillon de test
+test_set <- my_data_main[-cut_level,]
+
+# Executer le modèle logit sur l'échantillon d'apprentissage
+my_model <- glm(Type_de_client_Bon_client 
+                ~ Age_du_client_de_23_à_39_ans + Age_du_client_de_40_à_50_ans + Age_du_client_moins_de_23_ans
+                + Ancienneté_anc._de_4_à_6_ans + Ancienneté_anc._1_an_ou_moins + Ancienneté_anc._de_1_à_4_ans
+                + Domiciliation_du_salaire_Non_domicilié
+                + Profession_cadre + Profession_autre
+                + Moyenne_encours_de_2_à_5_K_encours + Moyenne_encours_moins_de_2K_encours
+                + Moyenne_des_mouvements_de_10_à_30K_mouvt + Moyenne_des_mouvements_de_30_à_50K_mouvt + Moyenne_des_mouvements_moins_10_K_mouvt
+                + Cumul_des_débits_de_40_à_100_débits + Cumul_des_débits_moins_de_40_débits
+                + Autorisation_de_découvert_découvert_autorisé + Interdiction_de_chéquier_chéquier__autorisé
+                + Situation_familiale_célibataire + Situation_familiale_marié
+                + Domiciliation_de_l_épargne_moins_de_10K_épargne + Domiciliation_de_l_épargne_pas_d_épargne
+                , data = train_set, family = binomial(link = 'logit'))
+summary(my_model)
+```
+
+## Modélisation & Interprétation
+
+```{r}
+## Modélisation 
+# Choisir le meilleur modèle en utilisant la fonction stepAIC
+# qui nous permet de sélectionner automatiquement un modèle plus généralisable en terme de robustesse
+
+# Exécuter le modèle stepwise
+my_model_trivial <- "~1" #On définit un modèle trivial réduit à la constante
+my_model_temp <- glm(Type_de_client_Bon_client ~ 1, data = train_set, family = binomial(link = 'logit'))
+my_model_stepwise <- stepAIC(my_model_temp, 
+                           scope = list(lower = my_model_trivial, upper = my_model), 
+                           trace = TRUE, data = train_set, direction = "both")
+summary(my_model_stepwise)
+```
+
+```{r}
+# Exécuter le modèle final sur l'échantillon d'apprentissage
+my_model_main <- glm(formula = Type_de_client_Bon_client ~ Domiciliation_du_salaire_Non_domicilié
+                     + Interdiction_de_chéquier_chéquier__autorisé + Moyenne_encours_moins_de_2K_encours
+                     + Ancienneté_anc._1_an_ou_moins + Ancienneté_anc._de_4_à_6_ans
+                     + Profession_cadre + Cumul_des_débits_moins_de_40_débits
+                     + Cumul_des_débits_de_40_à_100_débits + Moyenne_encours_de_2_à_5_K_encours
+                     + Age_du_client_moins_de_23_ans + Situation_familiale_célibataire
+                     + Moyenne_des_mouvements_moins_10_K_mouvt, 
+                     family = binomial(link = "logit"), 
+                     data = train_set)
+summary(my_model_main)
+
+```
+
+
+```{r}
+# Calculer les odds-ratios
+OR <- as.data.frame(exp(cbind(Odd_Ratio <- coef(my_model_main), confint(my_model_main))))
+colnames(OR) <- c("Odds Ratio", "Borne inférieure", "Borne supérieure")
+```
+
+```{r}
+
+# Calculer la matrice de confusion
+# On réalise les memes étapes pour chaque échantillon d'apprentissage et test
+attributes(my_model_main)
+```
+
+
+```{r}
+# Echantillon d'apprentissage
+## Matrice de classement en effectif
+# On produit des prédictions sur l'échantillon d'apprentissage à partir du prédicteur linéaire
+train_set_p <- cbind(train_set, predict(my_model_main, train_set, type = "link", se = TRUE))
+```
+
+```{r}
+# On obtient les probabilités correspondantes à l'inverse des fit par la fonction logistique
+train_set_p <- within(train_set_p, {
+  PredictedProb <- plogis(fit)
+  LL <- plogis(fit - (1.96 * se.fit))
+  UL <- plogis(fit + (1.96 * se.fit))
+})
+```
+
+```{r}
+# On dénote les observations qui ont la probabilité supérieure à 0.5 par 1, et 0 pour le cas de l'inverse
+train_set_p <- cbind(train_set_p, pred.Type_de_client_Bon_client = factor(ifelse(train_set_p$PredictedProb > 0.5, 1, 0)))
+```
+
+
+```{r}
+# Calculer la matrice de confusion pour l'échantillon d'apprentissage
+matrix_confusion_train <- as.matrix(table(train_set_p$pred.Type_de_client_Bon_client, train_set_p$Type_de_client_Bon_client))
+matrix_confusion_train <- as.data.frame(unclass(matrix_confusion_train))
+colnames(matrix_confusion_train) <- c("Classé_Mauvais_client", "Classé_Bon_client")
+rownames(matrix_confusion_train) <- c("Mauvais_client", "Bon_client")
+matrix_confusion_train
+```
+
+```{r}
+## Matrice de classement en pourcentages
+matrix_pct_train <- data.frame(matrix(NA, ncol = 2, nrow = 2)) 
+colnames(matrix_pct_train) <- c("Bien_classé", "Mal_classé")
+rownames(matrix_pct_train) <- c("Mauvais_client", "Bon_client")
+```
+
+```{r}
+# On crée une fonction trivial pour formater les pourcentages
+percent <- function(x, digits = 2, format = "f", ...) {
+  paste0(formatC(100 * as.numeric(x), format = format, digits = digits, ...), "%")
+}
+
+matrix_pct_train[1,1] <- percent(matrix_confusion_train[1,1] / (matrix_confusion_train [1,1] + matrix_confusion_train[1,2]))
+matrix_pct_train[2,1] <- percent(matrix_confusion_train[2,2] / (matrix_confusion_train [2,1] + matrix_confusion_train[2,2]))
+matrix_pct_train[1,2] <- percent(matrix_confusion_train[1,2] / (matrix_confusion_train [1,1] + matrix_confusion_train[1,2]))
+matrix_pct_train[2,2] <- percent(matrix_confusion_train[2,1] / (matrix_confusion_train [2,1] + matrix_confusion_train[2,2]))
+
+matrix_pct_train
+
+```
+
+```{r}
+# Echantillon test
+# Matrice de classement en effectif
+test_set_p <- cbind(test_set, predict(my_model_main, newdata = test_set, type = "response", se = TRUE))
+test_set_p <- cbind(test_set_p, pred.Type_de_client_Bon_client <- factor(ifelse(test_set_p$fit > 0.5, 1, 0)))
+matrix_confusion_test <- as.matrix(table(test_set_p$pred.Type_de_client_Bon_client, test_set_p$Type_de_client_Bon_client))
+matrix_confusion_test <- as.data.frame(unclass(matrix_confusion_test))
+colnames(matrix_confusion_test) <- c("Classé_Mauvais_client", "Classé_Bon_client")
+rownames(matrix_confusion_test) <- c("Mauvais_client", "Bon_client")
+matrix_confusion_test     
+
+## Matrice de classement en pourcentages
+matrix_pct_test <- data.frame(matrix(NA, ncol = 2, nrow = 2)) 
+colnames(matrix_pct_test) <- c("Bien_classé", "Mal_classé")
+rownames(matrix_pct_test) <- c("Mauvais_client", "Bon_client")
+
+matrix_pct_test[1,1] <- percent(matrix_confusion_test[1,1] / (matrix_confusion_test [1,1] + matrix_confusion_test[1,2]))
+matrix_pct_test[2,1] <- percent(matrix_confusion_test[2,2] / (matrix_confusion_test [2,1] + matrix_confusion_test[2,2]))
+matrix_pct_test[1,2] <- percent(matrix_confusion_test[1,2] / (matrix_confusion_test [1,1] + matrix_confusion_test[1,2]))
+matrix_pct_test[2,2] <- percent(matrix_confusion_test[2,1] / (matrix_confusion_test [2,1] + matrix_confusion_test[2,2]))
+
+matrix_pct_test
+```
+
+```{r}
+# Pivot table
+my_data_main$rule_Score1 <- ifelse(my_data_main$Score_1 > mean(my_data_main$Score_1), "Prédit Bon", "Prédit Mauvais")
+CrossTable(my_data_main$rule_Score1, my_data_main$Type_de_client, expected = FALSE, prop.r=TRUE, prop.c = TRUE,
+           prop.t = FALSE, prop.chisq = FALSE, format = c("SPSS"))
+
+my_data_main$rule_Score2 <- ifelse(my_data_main$Score_2 > mean(my_data_main$Score_2), "Prédit Bon", "Prédit Mauvais")
+CrossTable(my_data_main$rule_Score1, my_data_main$Type_de_client, expected = FALSE, prop.r=TRUE, prop.c = TRUE,
+           prop.t = FALSE, prop.chisq = FALSE, format = c("SPSS"))
+```
+
+
+
+```{r}
+## ROC Curve
+Pred = prediction(train_set_p$PredictedProb, train_set_p$Type_de_client_Bon_client)
+Perf = performance(Pred, "tpr", "fpr")
+plot(Perf, colorize = TRUE, main = "ROC apprentissage")
+# Pour avoir l'aire sous la courbe, on utilisera plutôt
+perf <- performance(Pred, "auc")
+perf@y.values[[1]]
+# On va mettre les deux courbes ROC côte à côte (apprenissage et tests)
+Predtest = prediction(test_set_p$fit, test_set_p$Type_de_client_Bon_client)
+Perftest = performance(Predtest, "tpr", "fpr")
+perftest <- performance(Predtest, "auc")
+perftest@y.values[[1]]
+par(mfrow = c(1, 2))
+plot(Perf, colorize = TRUE, main = "ROC apprentissage - AUC = 0.89")
+plot(Perftest, colorize = TRUE, main = "ROC Test - AUC = 0.82")
+```
+
+
+
